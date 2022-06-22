@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/QuiltMC/quilt-json-schemas/main/quilt.mod.json/schemas/main.json",
+  "title": "QuiltMC Mod Metadata (Version-agnostic)",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "enum": [1],
+      "default": 1
+    }
+  },
+  "oneOf": [
+    {
+      "allOf": [
+        {
+          "properties": {
+            "schema_version": {
+              "const": 1
+            }
+          }
+        },
+        {
+          "$ref": "file:///D:\\USER\\Documentos\\Quilt\\quilt-json-schemas\\quilt.mod.json\\schema_version_1.json"
+        }
+      ]
+    }
+  ],
+  "required": ["schema_version"]
+}

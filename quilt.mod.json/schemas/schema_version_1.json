@@ -1,0 +1,542 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/QuiltMC/quilt-json-schemas/main/quilt.mod.json/schemas/schema_version_1.json",
+  "$comment": "Based on the quilt.mod.json specification. See https://github.com/QuiltMC/rfcs/blob/master/specification/0002-quilt.mod.json.md",
+  "title": "QuiltMC Mod Metadata v1",
+  "description": "The QuiltMC mod metadata. Utilized by the Quilt Loader in order to load mods.",
+  "markdownDescription": "The QuiltMC mod metadata. Utilized by the Quilt Loader in order to load mods.\nThe format specification may be seen [here](https://github.com/QuiltMC/rfcs/blob/master/specification/0002-quilt.mod.json.md).",
+  "type": "object",
+  "$defs": {
+    "placeholder": {
+      "type": "string",
+      "pattern": "^\\$\\{[a-zA-Z_$][a-zA-Z\\d_$]*\\}$"
+    },
+    "mod_id": {
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "^[a-z][a-z0-9-_]{1,63}$"
+        },
+        {
+          "$ref": "#/$defs/placeholder"
+        }
+      ]
+    },
+    "semver_version": {
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+          "$comment": "The above regex was obtained at https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string"
+        },
+        {
+          "$ref": "#/$defs/placeholder"
+        }
+      ]
+    },
+    "entrypoint_value": {
+      "title": "The entrypoint value",
+      "description": "Points to an implementation of the entrypoint.",
+      "markdownDescription": "Points to an implementation of the entrypoint. For the default JVM language adapter, this can be in either of the following forms:\n* `my.package.MyClass` — A class to be instantiated and used\n* `my.package.MyClass::thing` — A static field containing an instance of the entrypoint or a method handle for entrypoints that are functional interfaces",
+      "type": "string"
+    },
+    "entrypoint_value_container": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entrypoint_value"
+          }
+        },
+        {
+          "$ref": "#/$defs/entrypoint_value"
+        }
+      ]
+    },
+    "plugin_value": {
+      "title": "The plugin value",
+      "description": "Points to an implementation of the LoaderPlugin interface.",
+      "markdownDescription": "Points to an implementation of the `LoaderPlugin` interface. Can be in either of the following forms:\n* `my.package.MyClass` — A class to be instantiated and used\n* `my.package.MyClass::thing` — A static field containing an instance of a `LoaderPlugin`",
+      "type": "string"
+    },
+    "plugin_value_container": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/plugin_value"
+          }
+        },
+        {
+          "$ref": "#/$defs/plugin_value"
+        }
+      ]
+    },
+    "version_specifier": {
+      "title": "A version range specifier",
+      "description": "Defines a range of versions.",
+      "markdownDescription": "Defines a range of versions. It can make use of any of the following patterns:\n* `*` — Matches any version. Will fetch the latest version available if needed\n* `1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 2.0.0\n* `=1.0.0` — Matches exactly version 1.0.0 and no other versions\n* `>=1.0.0` — Matches any version greater than or equal to 1.0.0\n* `>1.0.0` — Matches any version greater than version 1.0.0\n* `<=1.0.0` — Matches any version less than or equal to version 1.0.0\n* `<1.0.0` — Matches any version less than version 1.0.0\n* `1.0.x` — Matches any version with major version 1 and minor version 0.\n* `~1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 1.1.0\n* `^1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 2.0.0",
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "(\\*|^[\\d<=>^~]|^(>=|<=)|^)",
+          "$comment": "Perhaps this regex should be replaced with a better one"
+        },
+        {
+          "$ref": "#/$defs/placeholder"
+        }
+      ]
+    },
+    "mod_id_with_maven_group": {
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "((^[a-zA-Z0-9-_.]+):|^)([a-z][a-z0-9-_]{1,63})$"
+        },
+        {
+          "$ref": "#/$defs/placeholder"
+        }
+      ]
+    },
+    "dependency_object_with_description": {
+      "title": "A dependency object",
+      "description": "A dependency object defines what mods/plugins a given mod depends on or breaks. It can be represented as either an object containing at least the id field, a string mod identifier in the form of either mavenGroup:modId or modId, or an array of dependency objects. If an array of dependency objects is provided, the dependency matches if it matches ANY of the dependency objects.",
+      "markdownDescription": "A dependency object defines what mods/plugins a given mod depends on or breaks. It can be represented as either an object containing at least the `id` field, a string mod identifier in the form of either `mavenGroup:modId` or `modId`, or an array of dependency objects. If an array of dependency objects is provided, the dependency matches if it matches ANY of the dependency objects.",
+      "$ref": "#/$defs/dependency_object"
+    },
+    "dependency_object": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "title": "The id field",
+                  "description": "A mod identifier in the form of either mavenGroup:modId or modId.",
+                  "markdownDescription": "A mod identifier in the form of either `mavenGroup:modId` or `modId`.",
+                  "$ref": "#/$defs/mod_id_with_maven_group"
+                },
+                "versions": {
+                  "title": "The versions field",
+                  "description": "Should be a version specifier or array of version specifiers defining what versions this dependency applies to. If an array of versions is provided, the dependency matches if it matches ANY of the listed versions.",
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/version_specifier"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/version_specifier"
+                      }
+                    }
+                  ],
+                  "default": "*"
+                },
+                "reason": {
+                  "title": "The reason field",
+                  "description": "A short, human-readable reason for the dependency object to exist.",
+                  "type": "string"
+                },
+                "optional": {
+                  "title": "The optional field",
+                  "description": "Dependencies marked as optional will only be checked if the mod/plugin specified by the id field is present.",
+                  "markdownDescription": "Dependencies marked as `optional` will only be checked if the mod/plugin specified by the `id` field is present.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "unless": {
+                  "title": "The unless field",
+                  "description": "Describes situations where this dependency can be ignored.",
+                  "markdownDescription": "Describes situations where this dependency can be ignored. For example:\n```json\n{\n\t\"id\": \"sodium\",\n\t\"unless\": \"indium\"\n}\n```\n\nGame providers and loader plugins can also add their own optional fields to the dependency object for extra context when resolving dependencies. The Minecraft game provider, for instance, might define an \"environment\" field that can be used like so:\n\n```json\n{\n\t\"id\": \"modmenu\",\n\t\"environment\": \"client\"\n}\n```",
+                  "$ref": "#/$defs/dependency_object"
+                },
+                "$ref": "#/$defs/minecraft_game_provider_options"
+              },
+              "required": ["id"]
+            },
+            {
+              "$ref": "#/$defs/minecraft_game_provider_options"
+            }
+          ]
+        },
+        {
+          "$ref": "#/$defs/mod_id_with_maven_group"
+        },
+        {
+          "$ref": "#/$defs/dependency_object_array"
+        }
+      ]
+    },
+    "dependency_object_array": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency_object_with_description"
+      }
+    },
+    "provides_object_with_description": {
+      "title": "A provides object",
+      "description": "Defines the identifier and optionally version range of another mod that this package provides. It can be represented as either an object containing at least the id field, or a string mod identifier in the form of either mavenGroup:modId or modId.",
+      "markdownDescription": "Defines the identifier and optionally version range of another mod that this package provides. It can be represented as either an object containing at least the `id` field, or a string mod identifier in the form of either `mavenGroup:modId` or `modId`.",
+      "$ref": "#/$defs/provides_object"
+    },
+    "provides_object": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "The id field",
+              "description": "A mod identifier in the form of either mavenGroup:modId or modId.",
+              "markdownDescription": "A mod identifier in the form of either `mavenGroup:modId` or `modId`.",
+              "$ref": "#/$defs/mod_id_with_maven_group"
+            },
+            "version": {
+              "title": "The version field",
+              "description": "Should be a valid mod version. If omitted, then this defaults to the version of the providing mod.",
+              "$ref": "#/$defs/semver_version"
+            }
+          },
+          "required": ["id"]
+        },
+        {
+          "$ref": "#/$defs/mod_id_with_maven_group"
+        }
+      ]
+    },
+    "minecraft_game_provider_options": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "title": "The environment field",
+          "description": "Defines the environment(s) that this mod should be loaded on.",
+          "markdownDescription": "Defines the environment(s) that this mod should be loaded on. Valid values are:\n* `\"*\"` — All environments (default)\n* `\"client\"` — The physical client\n* `\"dedicated_server\"` — The dedicated server",
+          "default": "*",
+          "enum": ["*", "client", "dedicated_server"]
+        }
+      }
+    },
+    "license_object": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["name", "id", "url"]
+        }
+      ]
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "title": "The schema_version field",
+      "description": "The quilt mod file schema version to be used for parsing this file. Currently, the only valid version is 1.",
+      "type": "integer",
+      "default": 1,
+      "const": 1
+    },
+    "quilt_loader": {
+      "title": "The quilt_loader field",
+      "description": "Information necessary for the mod loading process.",
+      "type": "object",
+      "properties": {
+        "group": {
+          "title": "The group field",
+          "description": "A unique identifier for the organization behind or developers of the mod.",
+          "markdownDescription": "A unique identifier for the organization behind or developers of the mod. The group string must match the `^[a-zA-Z0-9-_.]+$` regular expression, and must not begin with the reserved namespace `loader.plugin.` It is recommended, but not required, to follow Maven's [guide to naming conventions](https://maven.apache.org/guides/mini/guide-naming-conventions.html).",
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9-_.]+$"
+        },
+        "id": {
+          "title": "The id field",
+          "description": "A unique identifier for the mod or library defined by this file, matching the ^[a-z][a-z0-9-_]{1,63}$ regular expression. Best practice is that mod ID's are in snake_case.",
+          "markdownDescription": "A unique identifier or the mod or library defined by this file, matching the `^[a-z][a-z0-9-_]{1,63}$` regular expression. Best practice is that mod ID's are in snake_case.",
+          "$ref": "#/$defs/mod_id"
+        },
+        "provides": {
+          "title": "The provides field",
+          "description": "An array of ProvidesObjects describing other mods/APIs that this package provides.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/provides_object_with_description"
+          }
+        },
+        "version": {
+          "title": "The version field",
+          "description": "Must conform to the Semantic Versioning 2.0.0 specification. In a development environment, the value ${version} can be used as a placeholder by quilt-gradle to be replaced on building the resulting JAR.",
+          "markdownDescription": "Must conform to the [Semantic Versioning 2.0.0 specification](https://semver.org/). In a development environment, the value `${version}` can be used as a placeholder by quilt-gradle to be replaced on building the resulting JAR.",
+          "$ref": "#/$defs/semver_version"
+        },
+        "entrypoints": {
+          "title": "The entrypoints field",
+          "description": "A collection of key: value pairs, where each key is the type of the entrypoints specified and each values is either a single entrypoint or an array of entrypoints.",
+          "markdownDescription": "A collection of `key: value` pairs, where each key is the type of the entrypoints specified and each values is either a single entrypoint or an array of entrypoints. An entrypoint is an object with the following keys:\n* adapter — Language adapter to use for this entrypoint. By default this is `default` and tells loader to parse using the JVM entrypoint notation.\n* value — Points to an implementation of the entrypoint. See below for the default JVM notation.\n\nIf an entrypoint does not need to specify a language adapter other than the default language adapter, the entrypoint can be represented simply as the value string instead.\n\n#### JVM entrypoint notation\n\nWhen referring to a class, the [binary name] is used. An example of a binary name is `my.mod.MyClass$Inner`.\n\nOne of the following `value` notations may be used in the JVM notation:\n\n* Implementation onto a class\n\t* The value must contain a fully qualified binary name to the class.\n\t* Implementing class must extend or implement the entrypoint interface.\n\t* Class must have a no-argument public constructor.\n\t* Example: `example.mod.MainModClass`\n* A field inside of a class.\n\t* The value must contain a fully qualified binary name to the class followed by `::` and a field name.\n\t* The field must be static.\n\t* The type of the field must be assignable from the field's class.\n\t* Example: `example.mod.MainModClass::THE_INSTANCE`\n\t* If there is ambiguity with a method's name, an exception will be thrown.\n* A method inside of a class.\n\t* The value must contain a fully qualified binary name to the class followed by `::` and a method name.\n\t* The method must be capable to implement the entrypoint type as a method reference. Generally this means classes which are functional interfaces.\n\t* Constructor requirement varies based on the method being static or instance level:\n\t\t* A static method does not require a public no-argument constructor.\n\t\t* An instance method requires a public no-argument constructor.\n\t* Example: `example.mod.MainModClass::init`\n\t* If there is ambiguity with a fields's name or other method, an exception will be thrown.\n\n#### Other notations\n\nSome language providers may extend the capabilities of the JVM language notation or provide additional notations.\nFor notation rules for other language adapters, consult the capabilities of the language adapter.",
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/entrypoint_value_container"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "adapter": {
+                    "title": "The entrypoint adapter",
+                    "description": "Language adapter to use for this entrypoint. If an entrypoint does not need to specify a language adapter other than the default language adapter, the entrypoint can be represented simply as the value string instead.",
+                    "type": "string"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/entrypoint_value_container"
+                  }
+                },
+                "required": ["value"]
+              }
+            ]
+          }
+        },
+        "plugins": {
+          "title": "The plugins field",
+          "description": "An array of loader plugins.",
+          "markdownDescription": "An array of loader plugins. A plugin is an object with the following keys:\n* adapter — Language adapter to use for this plugin\n* value — Points to an implementation of the `LoaderPlugin` interface. Can be in either of the following forms:\n\t* `my.package.MyClass` — A class to be instantiated and used\n\t* `my.package.MyClass::thing` — A static field containing an instance of a `LoaderPlugin`\n\nIf a plugin does not need to specify a language adapter other than the default language adapter, the plugin can be represented simply as the value string instead.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/plugin_value_container"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "adapter": {
+                    "title": "The plugin adapter",
+                    "description": "Language adapter to use for this plugin. If a plugin does not need to specify a language adapter other than the default language adapter, the plugin can be represented simply as the value string instead.",
+                    "type": "string"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/plugin_value_container"
+                  }
+                },
+                "required": ["value"]
+              }
+            ]
+          }
+        },
+        "jars": {
+          "title": "The jars field",
+          "description": "A list of paths to nested JAR files to load, relative to the root directory inside of the mods JAR.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "language_adapters": {
+          "title": "The language_adapters field",
+          "description": "A collection of key: value pairs, where each key is the namespace of a language adapter and the value is an implementation of the LanguageAdapter interface.",
+          "markdownDescription": "A collection of `key: value` pairs, where each key is the namespace of a language adapter and the value is an implementation of the `LanguageAdapter` interface.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "depends": {
+          "title": "The depends field",
+          "description": "An array of dependency objects. Defines mods that this mod will not function without.",
+          "$ref": "#/$defs/dependency_object_array"
+        },
+        "breaks": {
+          "title": "The breaks field",
+          "description": "An array of dependency objects. Defines mods that this mod either breaks or is broken by.",
+          "$ref": "#/$defs/dependency_object_array"
+        },
+        "load_type": {
+          "title": "The load_type field",
+          "description": "Influences whether or not a mod candidate should be loaded or not.",
+          "markdownDescription": "Influences whether or not a mod candidate should be loaded or not. May be any of these values\n* \"always\" (default for mods directly in the mods folder)\n* \"if_possible\"\n* \"if_required\" (default for jar-in-jar mods)\n\nThis doesn't affect mods directly placed in the mods folder.\n\n##### Always\nIf any versions of this mod are present, then one of them will be loaded.\n\nDue to how mod loading actually works if any of the different versions of this mod are present, and one of them has \"load_type\" set to \"always\", then all of them are treated as it being set to \"always\".\n##### If Possible\nIf this mod can be loaded, then it will - otherwise it will silently not be loaded.\n##### If Required\nIf this mod is in another mods \"depends\" field then it will be loaded, otherwise it will silently not be loaded.",
+          "enum": ["always", "if_possible", "if_required"]
+        },
+        "repositories": {
+          "title": "The repositories field",
+          "description": "A list of Maven repository url strings where dependencies can be looked for in addition to Quilt's central repository.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "intermediate_mappings": {
+          "title": "The intermediate_mappings field",
+          "description": "The intermediate mappings used for this mod. The intermediate mappings string must be a valid maven coordinate and match the \"^[a-zA-Z0-9-_.]+:[a-zA-Z0-9-_.]+$\" regular expression. This field currently only officially supports \"org.quiltmc:hashed\" and \"net.fabricmc:intermediary\".",
+          "markdownDescription": "The intermediate mappings used for this mod. The intermediate mappings string must be a valid maven coordinate and match the `^[a-zA-Z0-9-_.]+:[a-zA-Z0-9-_.]+$` regular expression. This field currently only officially supports `org.quiltmc:hashed` and `net.fabricmc:intermediary`.",
+          "anyOf": [
+            {
+              "enum": ["org.quiltmc:hashed", "net.fabricmc:intermediary"]
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_.]+:[a-zA-Z0-9-_.]+$"
+            }
+          ],
+          "default": "org.quiltmc:hashed"
+        },
+        "metadata": {
+          "title": "The metadata field",
+          "description": "Optional metadata that can be used by mods to display information about the mods installed.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "The name field",
+              "description": "A human-readable name for this mod.",
+              "type": "string"
+            },
+            "description": {
+              "title": "The description field",
+              "description": "A human-readable description of this mod. This description should be plain text, with the exception of line breaks, which can be represented with the newline character \\n.",
+              "markdownDescription": "A human-readable description of this mod. This description should be plain text, with the exception of line breaks, which can be represented with the newline character `\\n`.",
+              "type": "string"
+            },
+            "contributors": {
+              "title": "The contributors field",
+              "description": "A collection of key: value pairs denoting the persons or organizations that contributed to this project. The key should be the name of the person or organization, while the value can be either a string representing a single role or an array of strings each one representing a single role.\nA role can be any valid string. The \"Owner\" role is defined as being the person(s) or organization in charge of the project.",
+              "markdownDescription": "A collection of `key: value` pairs denoting the persons or organizations that contributed to this project. The key should be the name of the person or organization, while the value can be either a string representing a single role or an array of strings each one representing a single role.\nA role can be any valid string. The \"Owner\" role is defined as being the person(s) or organization in charge of the project.",
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            },
+            "contact": {
+              "title": "The contact field",
+              "description": "A collection of key: value pairs denoting various contact information for the people behind this mod, with all values being strings",
+              "markdownDescription": "A collection of `key: value` pairs denoting various contact information for the people behind this mod, with all values being strings. The following keys are officially defined, though mods can provide as many additional values as they wish:\n* email — Valid e-mail address for the organization/developers\n* homepage — Valid HTTP/HTTPS address for the project or the organization/developers behind it\n* issues — Valid HTTP/HTTPS address for the project issue tracker\n* sources — Valid HTTP/HTTPS address for a source code repository",
+              "type": "object",
+              "properties": {
+                "email": {
+                  "description": "Valid e-mail address for the organization/developers.",
+                  "type": "string",
+                  "format": "email"
+                },
+                "homepage": {
+                  "description": "Valid HTTP/HTTPS address for the project or the organization/developers behind it.",
+                  "type": "string",
+                  "format": "uri"
+                },
+                "issues": {
+                  "description": "Valid HTTP/HTTPS address for the project issue tracker.",
+                  "type": "string",
+                  "format": "uri"
+                },
+                "sources": {
+                  "description": "Valid HTTP/HTTPS address for a source code repository.",
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "license": {
+              "title": "The license field",
+              "description": "The license or array of licenses this project operates under.",
+              "markdownDescription": "The license or array of licenses this project operates under.\n\nA license is defined as either an [SPDX identifier](https://spdx.org/licenses/) string or an object in the following form:\n```json\n{\n\t\"name\": \"Perfectly Awesome License v1.0\",\n\t\"id\": \"PAL-1.0\",\n\t\"url\": \"https://theperfectlyawesomelicense.com/\",\n\t\"description\": \"This license does things and stuff and says that you can do things and stuff too!\"\n}\n```\nThe `\"description\"` field is optional.",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/license_object"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/license_object"
+                  }
+                }
+              ]
+            },
+            "icon": {
+              "title": "The icon field",
+              "description": "One or more paths to a square .PNG file. If an object is provided, the keys must be the resolution of the corresponding file",
+              "markdownDescription": "One or more paths to a square .PNG file. If an object is provided, the keys must be the resolution of the corresponding file. For example:\n```json\n\"icon\": {\n\t\"32\": \"path/to/icon32.png\",\n\t\"64\": \"path/to/icon64.png\",\n\t\"4096\": \"path/to/icon4096.png\"\n}\n```",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "required": ["group", "id", "version"]
+    },
+    "mixin": {
+      "title": "The mixin field",
+      "description": "A single or array of paths to mixin configuration files relative to the root of the mod JAR.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "access_widener": {
+      "title": "The access_widener field",
+      "description": "A single or array of paths to accesswidener files relative to the root of the mod JAR.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "minecraft": {
+      "title": "The minecraft field",
+      "description": "Contains flags and options related to Minecraft specifically.",
+      "type": "object",
+      "$ref": "#/$defs/minecraft_game_provider_options"
+    }
+  },
+  "additionalProperties": {
+    "title": "Custom Element",
+    "description": "In addition to the defined elements above, mods and libraries will be able to add their own elements to the quilt mod file. Mods will be expected to define up to one top-level element corresponding to their mod id. The element can be of any type, so that mods can define either a single value, array of values, or a sub-object."
+  },
+  "propertyNames": {
+    "$ref": "#/$defs/mod_id"
+  },
+  "required": ["schema_version", "quilt_loader"]
+}
