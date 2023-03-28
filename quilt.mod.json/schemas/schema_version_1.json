@@ -152,6 +152,7 @@
                   "$ref": "#/definitions/dependency_object"
                 }
               },
+              "$ref": "#/definitions/minecraft_game_provider_options",
               "required": ["id"]
             },
             {
