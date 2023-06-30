@@ -119,7 +119,7 @@
                 },
                 "versions": {
                   "title": "The versions field",
-                  "description": "Should be a version specifier or array of version specifiers defining what versions this dependency applies to. If an array of versions is provided, the dependency matches if it matches ANY of the listed versions.",
+                  "description": "Should be a version specifier or object defining what versions this dependency applies to.",
                   "oneOf": [
                     {
                       "$ref": "#/$defs/version_specifier"
@@ -129,6 +129,9 @@
                       "items": {
                         "$ref": "#/$defs/version_specifier"
                       }
+                    },
+                    {
+                      "$ref": "#/$defs/dependency_version_object"
                     }
                   ],
                   "default": "*"
@@ -165,6 +168,48 @@
         },
         {
           "$ref": "#/$defs/dependency_object_array"
+        }
+      ]
+    },
+    "dependency_version_object": {
+      "title": "A dependency version object",
+      "description": "Describes a version of the dependency. Can either contain the property all, or the property any. Both properties take an array as a value, which itself can contain another version object or a version string.",
+      "markdownDescription": "Describes a version of the dependency. Can either contain the property `all`, or the property `any`. Both properties take an array as a value, which itself can contain another version object or a version string.",
+      "type": "object",
+      "oneOf": [
+        {
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/dependency_version"
+              }
+            }
+          },
+          "required": ["any"],
+          "not": { "required": [ "all" ] }
+        },
+        {
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/dependency_version"
+              }
+            }
+          },
+          "required": ["all"],
+          "not": { "required": [ "any" ] }
+        }
+      ]
+    },
+    "dependency_version": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/version_specifier"
+        },
+        {
+          "$ref": "#/$defs/dependency_version_object"
         }
       ]
     },
