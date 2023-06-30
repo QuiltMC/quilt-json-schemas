@@ -186,7 +186,7 @@
               }
             }
           },
-          "required": "any",
+          "required": ["any"],
           "not": { "required": [ "all" ] }
         },
         {
@@ -198,7 +198,7 @@
               }
             }
           },
-          "required": "all",
+          "required": ["all"],
           "not": { "required": [ "any" ] }
         }
       ]
