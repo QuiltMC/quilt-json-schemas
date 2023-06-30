@@ -129,6 +129,9 @@
                       "items": {
                         "$ref": "#/$defs/version_specifier"
                       }
+                    },
+                    {
+                      "$ref": "#/$defs/dependency_version_object"
                     }
                   ],
                   "default": "*"
@@ -165,6 +168,46 @@
         },
         {
           "$ref": "#/$defs/dependency_object_array"
+        }
+      ]
+    },
+    "dependency_version_object": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/dependency_version"
+              }
+            }
+          },
+          "required": "any",
+          "not": { "required": [ "all" ] }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/dependency_version"
+              }
+            }
+          },
+          "required": "all",
+          "not": { "required": [ "any" ] }
+        }
+      ]
+    },
+    "dependency_version": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/version_specifier"
+        },
+        {
+          "$ref": "#/$defs/dependency_version_object"
         }
       ]
     },
