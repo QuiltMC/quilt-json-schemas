@@ -75,7 +75,7 @@
     "version_specifier": {
       "title": "A version range specifier",
       "description": "Defines a range of versions.",
-      "markdownDescription": "Defines a range of versions. It can make use of any of the following patterns:\n* `*` — Matches any version. Will fetch the latest version available if needed\n* `1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 2.0.0\n* `=1.0.0` — Matches exactly version 1.0.0 and no other versions\n* `>=1.0.0` — Matches any version greater than or equal to 1.0.0\n* `>1.0.0` — Matches any version greater than version 1.0.0\n* `<=1.0.0` — Matches any version less than or equal to version 1.0.0\n* `<1.0.0` — Matches any version less than version 1.0.0\n* `1.0.x` — Matches any version with major version 1 and minor version 0.\n* `~1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 1.1.0\n* `^1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 2.0.0\n\nSee [this cheatsheet](https://devhints.io/semver) for more information.",
+      "markdownDescription": "Defines a range of versions. It can make use of any of the following patterns:\n* `*` — Matches any version. Will fetch the latest version available if needed\n* `1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 2.0.0\n* `=1.0.0` — Matches exactly version 1.0.0 and no other versions\n* `>=1.0.0` — Matches any version greater than or equal to 1.0.0\n* `>1.0.0` — Matches any version greater than version 1.0.0\n* `<=1.0.0` — Matches any version less than or equal to version 1.0.0\n* `<1.0.0` — Matches any version less than version 1.0.0\n* `1.0.x` — Matches any version with major version 1 and minor version 0.\n* `~1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 1.1.0\n* `^1.0.0` — Matches the most recent version greater than or equal to version 1.0.0 and less than 2.0.0\n",
       "type": "string",
       "oneOf": [
         {
@@ -84,6 +84,19 @@
         },
         {
           "$ref": "#/$defs/placeholder"
+        }
+      ]
+    },
+    "version_specifier_container": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/version_specifier"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/version_specifier"
+          }
         }
       ]
     },
@@ -119,7 +132,8 @@
                 },
                 "versions": {
                   "title": "The versions field",
-                  "description": "Should be a version specifier or array of version specifiers defining what versions this dependency applies to. If an array of versions is provided, the dependency matches if it matches ANY of the listed versions.",
+                  "description": "A version specifier, or complex set of version specifiers that control what versions match this dependency object. It is an error to specify multiple constraints that conflict with each other (where no version would match the whole specifier). It is an error when the resulting version specifier matches every version, and isn't the single string \"*\", or uses the deprecated array style of definition.",
+                  "markdownDescription": "A version specifier, or complex set of version specifiers that control what versions match this dependency object.\n\nIt is an error to specify multiple constraints that conflict with each other (where no version would match the whole specifier).\n\nIt is an error when the resulting version specifier matches every version, and isn't the single string `\"*\"`, or uses the deprecated array style of definition.\n\n#### String\n\nShould be a single version specifier defining the versions this dependency applies to.\n\n#### Array (Deprecated)\n\nShould be an array of version specifiers defining the versions this dependency applies to. The dependency matches if it matches ANY of the listed versions.\n\nThis usage is discouraged as many mod developers wrongly assumed this was \"ALL\" rather than \"ANY\", leading to unfortunate situations where mods depend on [ \">=1.18.1\", \"<1.19.3\" ], which actually matches _every_ version of Minecraft, rather than just the versions between 1.18.1 and 1.19.2.\n\n* Quilt Loader will emit a formatting warning when discovering mods that use this.\n* Quilt Loader will not emit errors if this is used.\n* Future schema versions will likely remove this array functionality.\n\n#### Object\n\nThis must contain a single field, which must either be `any` or `all`.\n\nThe field value must be an array, with more constraints. Each element of the array must either be a string version specifier, or an object which is interpreted in the same way as the versions field itself.",
                   "oneOf": [
                     {
                       "$ref": "#/$defs/version_specifier"
@@ -129,6 +143,28 @@
                       "items": {
                         "$ref": "#/$defs/version_specifier"
                       }
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "any": {
+                              "$ref": "#/$defs/version_specifier_container"
+                            }
+                          },
+                          "required": ["any"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "all": {
+                              "$ref": "#/$defs/version_specifier_container"
+                            },
+                            "required": ["all"]
+                          }
+                        }
+                      ]
                     }
                   ],
                   "default": "*"
@@ -239,6 +275,25 @@
             }
           },
           "required": ["name", "id", "url"]
+        }
+      ]
+    },
+    "mixin_configuration_entry": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "config": {
+              "type": "string"
+            },
+            "environment": {
+              "default": "*",
+              "enum": ["*", "client", "dedicated_server"]
+            }
+          }
         }
       ]
     }
@@ -496,15 +551,16 @@
     },
     "mixin": {
       "title": "The mixin field",
-      "description": "A single or array of paths to mixin configuration files relative to the root of the mod JAR.",
+      "description": "A single or array of mixin configuration entries.\n\nAn entry can either be an object or a string.\nThe mixin configuration entry object has one required field \"config\" and an optional field \"environment\".\nThe \"config\" field is a path to the mixin config file relative to the root of the mod JAR.\nThe \"environment\" field is the environment in which the config should be loaded. If no environment or '*' is set, the mixin config is loaded on both environments.\n\nProviding a string is the same as providing a mixin configuration entry with a config field and no environment field.",
+      "markdownDescription": "A single or array of mixin configuration entries. \n\nAn entry can either be an object or a string. \nThe mixin configuration entry object has one required field `config` and an optional field `environment`. \nThe `config` field is a path to the mixin config file relative to the root of the mod JAR.\nThe `environment` field is the environment in which the config should be loaded. If no environment or `'*'` is set, the mixin config is loaded on both environments.\n\nProviding a string is the same as providing a mixin configuration entry with a config field and no environment field.\n\nExamples:\n```json\n\"mixin\": {\n\t\"config\": \"modid.mixins.json\",\n\t\"environment\": \"client\"\n}\n```\n\n```json\n\"mixin\": \"modid.mixins.json\"\n```\n\n```json\n\"mixin\": [\n\t{\n\t\t\"config\": \"modid_client.mixins.json\",\n\t\t\"environment\": \"client\"\n\t},\n\t\"modid.mixins.json\"\n]\n```",
       "oneOf": [
         {
-          "type": "string"
+          "$ref": "#/$defs/mixin_configuration_entry"
         },
         {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/mixin_configuration_entry"
           }
         }
       ]
